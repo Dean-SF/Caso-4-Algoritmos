@@ -1,0 +1,6 @@
+*.exe
+Newsvg.svg
+.vscode/
+*.o
+Support/mainDePrueba/Result/
+Result/
