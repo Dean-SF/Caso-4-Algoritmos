@@ -1,4 +1,4 @@
-#include "../../classes/socketclient.h"
+#include "../../classes/socket/socketclient.h"
 
 int main(int argc, char const* argv[])
 {

@@ -23,7 +23,7 @@ int main() {
 
     printRGBPixel(&imagen,256,375);
 
-    changeRGBPixel(&imagen,256,375,0,0,0);
+    changeRGBPixel(&imagen,0,0,0,0,0);
 
 
     CImgDisplay display(imagen,"SoylaImagen");
