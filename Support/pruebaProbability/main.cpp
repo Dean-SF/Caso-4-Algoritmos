@@ -1,6 +1,5 @@
 #include <iostream>
 #include <unistd.h>
-#include "../../classes/probabilistic/TableEntry.h"
 #include "../../classes/genetic/cromodistribution.h"
 #include <vector>
 #include <cstdlib>
