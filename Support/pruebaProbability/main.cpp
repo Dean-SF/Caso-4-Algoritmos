@@ -99,6 +99,16 @@ void thirdTryRand() {
     cout << "Suma: " << esTotal << endl;
 }
 
+void pruebaCordenadasEnUnArea() {
+    for (int i = 0; i < 50; i++) {
+        int randX = 30 + rand() % 1019;
+        int randY = 30 + rand() % 1019;
+        cout << "x: " << randX << "y: " << randY << endl;
+    }
+    
+    
+}
+
 int main () {
-    thirdTryRand(); 
+    pruebaCordenadasEnUnArea();
 }
