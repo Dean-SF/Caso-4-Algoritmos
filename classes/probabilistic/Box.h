@@ -4,10 +4,13 @@
 #define BOX_SIZE 60
 #define GRAY_RANGE 15
 
+#include <iostream>
 #include "Pixel.h"
 #include <vector>
 
 using std::vector;
+using std::cout;
+using std::endl;
 
 class Box {
 private:
@@ -39,8 +42,8 @@ public:
         return pixelGroup[0];
     }
 
-    vector<Pixel> *getPixelGroup() {
-        return &pixelGroup;
+    vector<Pixel> getPixelGroup() {
+        return pixelGroup;
     }
 
     int getPixelCount() {
@@ -59,14 +62,21 @@ public:
         pixelGroup[0] = pPixel;
     }
 
-    bool appendPixel(Pixel pPixel) {
+    bool checkColor(Pixel pPixel) {
         unsigned char reference = pixelGroup[0].getColor();
-        if(reference - GRAY_RANGE <= pPixel.getColor() && pPixel.getColor() <= reference + GRAY_RANGE) {
-            pixelGroup.emplace_back(pPixel);
+        if (reference - GRAY_RANGE <= pPixel.getColor() && pPixel.getColor() <= reference + GRAY_RANGE) 
             return true;
-        }
         return false;
-        
+    }
+
+    void appendPixel(Pixel pPixel) {
+        pixelGroup.emplace_back(pPixel);
+    }
+
+    void printPixels() {
+        for (int i = 0; i < getPixelCount(); i++) {
+            cout << "(" << pixelGroup[i].getXAxis() << "," << pixelGroup[i].getYAxis() << ")" << endl;
+        }
     }
 };
 

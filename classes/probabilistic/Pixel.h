@@ -7,6 +7,11 @@ private:
     int yAxis;
     unsigned char color;
 public:
+    Pixel(int pXAxis, int pYAxis) {
+        xAxis = pXAxis;
+        yAxis = pYAxis;
+    }
+
     Pixel(int pXAxis, int pYAxis, unsigned char pColor) {
         xAxis = pXAxis;
         yAxis = pYAxis;
