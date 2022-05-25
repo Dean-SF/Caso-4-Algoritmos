@@ -75,7 +75,7 @@ public:
 
     void printPixels() {
         for (int i = 0; i < getPixelCount(); i++) {
-            cout << "(" << pixelGroup[i].getXAxis() << "," << pixelGroup[i].getYAxis() << ")" << endl;
+            cout << "(" << pixelGroup[i].getXAxis() << "," << pixelGroup[i].getYAxis() << ") : " << (int)(pixelGroup[i].getColor()) << endl;
         }
     }
 };

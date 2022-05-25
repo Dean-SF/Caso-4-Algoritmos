@@ -17,15 +17,18 @@ using namespace std;
 using namespace cimg_library;
 using std::map;
 
+#define BACKGROUND_RANGE 20
+
 const unsigned TOTAL_OF_PIXELS = 1166400; // 1080x1080
 
 class ProbabilisticAlgorithm {
 private:
+    unsigned char backgroundColor;
     double samplePercentage;
     double sizeOfSample;
     double pixelCounter;
     vector<Box*> boxes;
-    multimap<double,Box*> table;
+    map<double,Box*> table;
     double totalBoxes;
     CImg<unsigned char> *picture;
 
@@ -43,6 +46,20 @@ private:
                 cout << "]" << endl;
             }
         }
+    }
+
+    void setBackgroundColor(){
+        Pixel *temporalPixel = new Pixel(0, 0, *(picture->data(0,0,0,0)), *(picture->data(0,0,0,1)), *(picture->data(0,0,0,2)));
+        backgroundColor = temporalPixel->getColor();
+        delete temporalPixel;
+    }
+
+    bool isBackground(int pXAxis, int pYAxis) {
+        unsigned char pixelColor = 0.299*(*(picture->data(pXAxis,pYAxis,0,0))) + 0.587*(*(picture->data(pXAxis,pYAxis,0,1))) + 0.114*(*(picture->data(pXAxis,pYAxis,0,2))); 
+        if(backgroundColor - BACKGROUND_RANGE < pixelColor && pixelColor < backgroundColor + BACKGROUND_RANGE) {
+            return true;
+        }
+        return false;
     }
 
     double getInverseProbability(int pPixelsInBox) {
@@ -132,11 +149,11 @@ public:
         return &boxes;
     }
 
-    void setTable(multimap<double,Box*> pTable) {
+    void setTable(map<double,Box*> pTable) {
         table = pTable;
     }
 
-    multimap<double,Box*>* getTable() {
+    map<double,Box*>* getTable() {
         return &table;
     }
 
@@ -162,21 +179,26 @@ public:
         srand (time(0));
         boxes.emplace_back(nullptr);
         table.insert({1.0, nullptr});
+        setBackgroundColor();
       
         int randomNumber, minX, minY, maxX, maxY, randomX, randomY;
         double randomPercentage, probabilityForNewBox;
 
-        while (pixelCounter <= 3500) {
-            //cout << pixelCounter << endl;
+        int temp = 0;
+
+        for(int i = 0; i < 100000; i++) {
+            //cout << i << " : " << pixelCounter << endl;
             randomPercentage = (rand() % 100) / 100.00;
             Box* chosenBox = getBox(randomPercentage);
 
             if (chosenBox == nullptr) {
+                randomX = 30 + rand() % 1019;
+                randomY = 30 + rand() % 1019;
+                if(isBackground(randomX,randomY)) {
+                    continue;
+                }
                 pixelCounter++;
                 totalBoxes++;
-
-                randomX = rand() % 1079;
-                randomY = rand() % 1079;
                 Pixel randPixel = getNewPixel(randomX, randomY);
                 Box* newBox = new Box(randPixel);
                 boxes.emplace_back(newBox);
@@ -194,14 +216,51 @@ public:
             
                 Pixel newPixel = getNewPixel(randomX, randomY);
                 if (chosenBox->checkColor(newPixel)) {
-                    addPixelToBox(newPixel, referencePixel);
+                    chosenBox->appendPixel(newPixel);
                     pixelCounter++;
                 }
             }
             updateTable();
         }
+        /*
+        while (pixelCounter <= 50000) {
+            cout << pixelCounter << endl;
+            randomPercentage = (rand() % 100) / 100.00;
+            Box* chosenBox = getBox(randomPercentage);
+
+            if (chosenBox == nullptr) {
+                randomX = 30 + rand() % 1019;
+                randomY = 30 + rand() % 1019;
+                if(isBackground(randomX,randomY)) {
+                    continue;
+                }
+                pixelCounter++;
+                totalBoxes++;
+                Pixel randPixel = getNewPixel(randomX, randomY);
+                Box* newBox = new Box(randPixel);
+                boxes.emplace_back(newBox);
+                
+            } else {
+                Pixel referencePixel = chosenBox->getReferencePixel();
+                
+                minX = chosenBox->getMinCoords().getXAxis();
+                maxX = chosenBox->getMaxCoords().getXAxis();
+                minY = chosenBox->getMinCoords().getYAxis();
+                maxY = chosenBox->getMaxCoords().getYAxis();
+
+                randomX = abs(minX + (rand() % (maxX-minX)));
+                randomY = abs(minY + (rand() % (maxY-minY)));
+            
+                Pixel newPixel = getNewPixel(randomX, randomY);
+                if (chosenBox->checkColor(newPixel)) {
+                    chosenBox->appendPixel(newPixel);
+                    pixelCounter++;
+                }
+            }
+            updateTable();
+        }*/
         // cout << "RESULTADO FINAL " << endl;
-        // printTable();
+        //printTable();
         changeColors();
     }
 
