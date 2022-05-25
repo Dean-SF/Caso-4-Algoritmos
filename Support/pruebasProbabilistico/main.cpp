@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <unistd.h>
 #include "../../libraries/CImg.h"
-#include "ProbabilisticAlgorithm.h"
+#include "../../classes/probabilistic/ProbabilisticAlgorithm.h"
 
 using namespace std;
 using namespace cimg_library;
