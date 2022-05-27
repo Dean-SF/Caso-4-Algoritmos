@@ -13,8 +13,10 @@ private:
     GeneticAlgorithm *genetic;
     
 public:
-    Controller() {
-        picture = new CImg<unsigned char>("../../samples/repre(1080).jpg");
+    Controller(string pPicture) {
+        string pictureLocation = "../../samples/";
+        pictureLocation += pPicture;
+        picture = new CImg<unsigned char>(&pictureLocation[0]);
         probabilistic = new ProbabilisticAlgorithm(0.085,picture); 
         genetic = new GeneticAlgorithm();
     }

@@ -1,10 +1,11 @@
 #ifndef _INDIVIDUAL_
 #define _INDIVIDUAL_ 1
 
+/*
+Basic structure to save every individual information
+*/
 class Individual {
     private: 
-        // any important related info
-        // decide the size of your nibble for your problem
         double fitnessValue;
         unsigned int cromosoma;
     public:

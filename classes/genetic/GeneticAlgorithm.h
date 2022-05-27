@@ -19,16 +19,29 @@ using std::pair;
 
 class GeneticAlgorithm {
 private:
-    vector<Box*> *sampling;
-    GeneticBase *genetic;
+    int totalAxis;
     int totalPixels;
     Pixel minCoords;
     Pixel maxCoords;
-    int totalAxis;
     double rangeExcess;
+    GeneticBase *genetic;
+    vector<Box*> *sampling;
     map<int,Probability> xAxisAproximation;
     map<int,Probability> yAxisAproximation; 
 
+    /*
+    Calculates the middle coords for from the reduced area of the sampling
+    */
+    void setMiddleCoords() {
+        genetic->setMiddleXAxis((minCoords.getXAxis()+maxCoords.getXAxis())/2);
+        genetic->setMiddleYAxis((minCoords.getYAxis()+maxCoords.getYAxis())/2);
+    }
+
+    /*
+    Sometimes, getting a percentage of the number 4294967296 give a value with decimals,
+    in the long run, if we cut this percentages, we will lose 8500 values aprox, so this function
+    saves the decimal part, and when this part is more or equal to 0, is given to the next range
+    */
     unsigned int distrituteExcess(double pDecimalNumber) {
         unsigned int wholePart = (unsigned int)pDecimalNumber;
         rangeExcess += pDecimalNumber - wholePart;
@@ -40,6 +53,31 @@ private:
         return wholePart;
     }
 
+    /*
+    this function converts a gray from 0 to 255, into 3
+    different types of gray, dark = 45, mid = 128, light = 210
+    */
+    GrayIntensity getReduceColor(unsigned char pColor) {
+        unsigned char darkGray = abs(pColor - dark);
+        unsigned char midGray = abs(pColor - mid);
+        unsigned char lightGray = abs(pColor - light);
+
+        if(darkGray <= midGray && darkGray <= lightGray)
+            return dark;
+
+        if(midGray <= darkGray && midGray <= lightGray)
+            return mid;
+        
+        if(lightGray <= darkGray && lightGray <= midGray)
+            return light;
+
+        return mid;
+    }
+
+    /*
+    This fuction takes the min and max coordinates from the sampling
+    to get a reduce square like area
+    */
     void getMinMaxCoords() {
         for(Box *actual : *sampling) {
             if(actual->getMinCoords().getXAxis() < minCoords.getXAxis()) {
@@ -60,33 +98,22 @@ private:
         }
     }
 
-    GrayIntensity getReduceColor(unsigned char pColor) {
-        unsigned char darkGray = abs(pColor - dark);
-        unsigned char midGray = abs(pColor - mid);
-        unsigned char lightGray = abs(pColor - light);
-
-        if(darkGray <= midGray && darkGray <= lightGray)
-            return dark;
-
-        if(midGray <= darkGray && midGray <= lightGray)
-            return mid;
-        
-        if(lightGray <= darkGray && lightGray <= midGray)
-            return light;
-
-        return mid;
-    }
-
-    Probability aproxColorDistanceProbability(int axisCoord, bool isXAxis) {
+    /*
+    This function takes the closest box from the sampling from only the xAxis
+    or only the yAxis, and saves the amount of pixels it have. additionally, it finds
+    the closest box for each color and saves the amount of pixels it has. All of this
+    for future coordinates percentages calculations
+    */
+    Probability aproxColorDistanceProbability(int pAxisCoord, bool pIsXAxis) {
         int minDark = 1090, minMid = 1090, minLight = 1090, minAbsolute = 1090;
         Probability colorDistance;
         for(Box *actual : *sampling) {
             int distance;
             Pixel actualReference = actual->getReferencePixel();
-            if(isXAxis) {
-                distance = abs(actualReference.getXAxis()-axisCoord);
+            if(pIsXAxis) {
+                distance = abs(actualReference.getXAxis()-pAxisCoord);
             } else {
-                distance = abs(actualReference.getYAxis()-axisCoord);
+                distance = abs(actualReference.getYAxis()-pAxisCoord);
             }
             GrayIntensity actualReduceColor = getReduceColor(actualReference.getColor());
 
@@ -126,6 +153,9 @@ private:
         return colorDistance;
     }
 
+    /*
+    this basically creates a Cromodistribution for given values
+    */
     Cromodistribution createDistribution(int pXAxis, int pYAxis, GrayIntensity pColor, TypeOfShape pShape) {
         Cromodistribution newDistribution;
         newDistribution.xAxis = pXAxis;
@@ -135,6 +165,12 @@ private:
         return newDistribution;
     }
     
+    /*
+    For each coordinate, we will be making 6 rows, for every type of shape (dot and line), 
+    we will make a row for every color (dark, mid and light gray), making it in total, 6 rows,
+    so the positional probability is distributed between each color according to amount of pixel
+    of the closest box of that color for the coordinate we are calculating.
+    */
     void addAllDistributions(int pXAxis, int pYAxis, long double pDarkProb, long double pMidProb, long double pLightProb, unsigned int *pLastRange) {
         *pLastRange += distrituteExcess((CROMO_MAX_VALUE-1)*(pDarkProb/2));
         genetic->addDistribution(createDistribution(pXAxis,pYAxis,dark,line),*pLastRange);
@@ -151,6 +187,11 @@ private:
     
     }
 
+
+    /*
+    We need a probability that goes from 0 to 1, for that we need to divide every probability by
+    sum of all the probabilities, so this function gives the sum of all the probabilities
+    */
     double getProbabilitySum() {
         double probabilitySum = 0;
         for(int xAxis = minCoords.getXAxis(); xAxis < maxCoords.getXAxis(); xAxis+=PIXEL_SEPARATION) {
@@ -165,17 +206,17 @@ private:
                 if(distanceCalibrator < 1)
                     distanceCalibrator = 1.0;
                 distanceCalibrator = 1.0/distanceCalibrator;
-                /*if(0 <= xAxis && xAxis <= 100 && 0 <= yAxis && yAxis <= 100) {
-                cout << endl << distanceCalibrator << endl;
-                cout << (xAbs + yAbs/(double)totalAxis) << endl;
-                cout << (xAbs + yAbs/(double)totalAxis)*distanceCalibrator << endl;}*/
                 probabilitySum += (((xAbs + yAbs)/(double)totalAxis)*distanceCalibrator);
             }
         }
-        //cout << "si" << probabilitySum << endl;
         return probabilitySum;
     }
 
+    /*
+    This function starts the process for the distribution of the nibble/cromosomatic representation.
+    For this we will calculate aproximate boxes for all the area calculated from the sampling with 
+    the necessary information to generate probability of each coordinate we want. 
+    */
     void initDistribution() {
         for(int yAxis = minCoords.getYAxis(); yAxis < maxCoords.getYAxis(); yAxis+=BOX_SIZE+PIXEL_SEPARATION)
             yAxisAproximation.insert({yAxis+BOX_SIZE,aproxColorDistanceProbability(yAxis,false)});
@@ -185,7 +226,6 @@ private:
         
         double probabilitySum = getProbabilitySum();
         
-        double suma = 0;
         unsigned int lastRange = 0;
         for(int xAxis = minCoords.getXAxis(); xAxis < maxCoords.getXAxis(); xAxis+=PIXEL_SEPARATION) {
             for(int yAxis = minCoords.getYAxis(); yAxis < maxCoords.getYAxis(); yAxis+=PIXEL_SEPARATION) {
@@ -194,14 +234,6 @@ private:
                 int xAbsolute = xAxisTable.amountClosest;
                 int yAbsolute = yAxisTable.amountClosest;
 
-                int totalAmount = xAxisTable.totalAmount + yAxisTable.totalAmount;
-
-                //cout << totalAmount << endl;
-
-                long double partialDarkProb= (xAxisTable.amountDark + yAxisTable.amountDark)/(double)totalAmount;
-                long double partialMidProb = (xAxisTable.amountMid + yAxisTable.amountMid)/(double)totalAmount;
-                long double partialLightProb= (xAxisTable.amountLight + yAxisTable.amountLight)/(double)totalAmount;
-
                 double xDistance = xAxisTable.distanceClosest;
                 double yDistance = yAxisTable.distanceClosest;
                 double distanceCalibrator = ((xDistance+yDistance)/2.0);
@@ -209,73 +241,25 @@ private:
                     distanceCalibrator = 1.0;
                 distanceCalibrator = 1.0/distanceCalibrator;
 
+                int totalAmount = xAxisTable.totalAmount + yAxisTable.totalAmount;
+
+                long double partialDarkProb= (xAxisTable.amountDark + yAxisTable.amountDark)/(double)totalAmount;
+                long double partialMidProb = (xAxisTable.amountMid + yAxisTable.amountMid)/(double)totalAmount;
+                long double partialLightProb= (xAxisTable.amountLight + yAxisTable.amountLight)/(double)totalAmount;
+
                 long double coordProbability = (((xAbsolute + yAbsolute)/(double)totalAxis)*distanceCalibrator)/(double)probabilitySum;
-                suma += coordProbability;
                 long double darkProb = coordProbability*partialDarkProb;
                 long double midProb = coordProbability*partialMidProb;
                 long double lightProb = coordProbability*partialLightProb;
 
                 addAllDistributions(xAxis,yAxis,darkProb,midProb,lightProb,&lastRange);
-                /*
-                cout << endl << "TOTAL PROBABILITY: " << coordProbability << endl;
-                cout << "-- Probability Distribution ---" << endl;
-                cout << "Probability For Dark: " << darkProb << endl;
-                cout << "Probability For Mid: " << midProb << endl;
-                cout << "Probability For Light: " << lightProb << endl;
-                cout << "Probability Sum: " << darkProb + midProb + lightProb << endl;*/
             }
         }
-        //cout << suma << endl;
-        /*
-        int xAxis = 27*PIXEL_SEPARATION;
-        int yAxis = 27*PIXEL_SEPARATION;
-        Probability xAxisTable = xAxisAproximation.lower_bound(xAxis)->second;
-        Probability yAxisTable = yAxisAproximation.lower_bound(yAxis)->second;
-        int xAbsolute = xAxisTable.amountClosest;
-        int yAbsolute = yAxisTable.amountClosest;
-
-        int totalAmount = xAxisTable.totalAmount + yAxisTable.totalAmount;
-
-        //cout << totalAmount << endl;
-
-        long double partialDarkProb= (xAxisTable.amountDark + yAxisTable.amountDark)/(double)totalAmount;
-        long double partialMidProb = (xAxisTable.amountMid + yAxisTable.amountMid)/(double)totalAmount;
-        long double partialLightProb= (xAxisTable.amountLight + yAxisTable.amountLight)/(double)totalAmount;
-
-        double xDistance = xAxisTable.distanceClosest;
-        double yDistance = yAxisTable.distanceClosest;
-        double distanceCalibrator = ((xDistance+yDistance)/2.0);
-        if(distanceCalibrator==0)
-            distanceCalibrator = 1.0;
-        distanceCalibrator = 1.0/distanceCalibrator;
-
-        long double coordProbability = (((xAbsolute + yAbsolute)/(double)totalAxis)*distanceCalibrator)/(double)probabilitySum;
-
-        long double darkProb = coordProbability*partialDarkProb;
-        long double midProb = coordProbability*partialMidProb;
-        long double lightProb = coordProbability*partialLightProb;
-
-        //addAllDistributions(xAxis,yAxis,darkProb,midProb,lightProb,&lastRange);
-        
-        cout << endl << "TOTAL PROBABILITYaaa: " << coordProbability << endl;
-        cout << "-- Probability Distribution ---" << endl;
-        cout << "Probability For Dark: " << darkProb << endl;
-        cout << "Probability For Mid: " << midProb << endl;
-        cout << "Probability For Light: " << lightProb << endl;
-        cout << "Probability Sum: " << darkProb + midProb + lightProb << endl;*/
-    }
-
-    void printRepresentation() {
-        map<unsigned int,Cromodistribution> *representation = genetic->getRepresentation();
-        for(pair<unsigned int,Cromodistribution> actual : *representation) {
-            cout << actual.first << ", ";
-        }
-        cout << endl;
     }
 public:
     GeneticAlgorithm() {
         genetic = new GeneticBase();
-        minCoords.setXAxis(1090);
+        minCoords.setXAxis(1090); 
         minCoords.setYAxis(1090);
         maxCoords.setXAxis(0);
         maxCoords.setYAxis(0);
@@ -286,16 +270,16 @@ public:
         delete genetic;
     }
 
+    /*
+    Process to start the genetic algorithm
+    */
     void work(vector<Box*> *pSampling, int pTotalPixels) {
         sampling = pSampling;
         totalPixels = pTotalPixels;
 
         sampling->erase(sampling->begin());
         getMinMaxCoords();
-
-        cout << "minCoords: (" << minCoords.getXAxis() << ", " << minCoords.getYAxis() << ")" << endl;
-        cout << "maxCoords: (" << maxCoords.getXAxis() << ", " << maxCoords.getYAxis() << ")" << endl;
-        cout << sampling->size() << endl;
+        setMiddleCoords();
 
         initDistribution();
 
@@ -303,7 +287,6 @@ public:
 
         genetic->produceGenerations(100,500);
 
-        //printRepresentation();
     }
 
 

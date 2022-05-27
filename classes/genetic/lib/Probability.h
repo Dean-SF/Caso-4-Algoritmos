@@ -1,6 +1,7 @@
 #ifndef PROBABILITY_H
 #define PROBABILITY_H
 
+// struct to store important information to distribute the nibble
 struct Probability {
     int amountDark = 0;
     int amountMid = 0;

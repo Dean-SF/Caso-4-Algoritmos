@@ -1,73 +1,55 @@
 #ifndef _GENETICBASE_
 #define _GENETICBASE_ 1
-#include <windows.h>
+#include <unistd.h>
 #include <map>
 #include <ctime>
 #include <cmath>
 #include <vector>
 #include <random>
+#include <limits.h>
+#include <float.h>
 #include "lib/Individual.h"
 #include "lib/Cromodistribution.h"
 #include "../socket/socketclient.h"
 
 #define PIXEL_SEPARATION BOX_SIZE/3
 #define PIXEL_IDEAL_NEIGHBOURS 8
-#define FITNESS_POPULATION_PERCENTAGE 0.20
 
 using namespace std;
 
+/*
+pseudo random number generator, generates numbers from 0 to 4294967295
+*/
 uniform_int_distribution<unsigned int> distributor(0,CROMO_MAX_VALUE-1);
 typedef mt19937 randomType;
 
 class GeneticBase {
     private:
-        map<unsigned int,Cromodistribution> *representation;
-        map<double,Individual*> *rulette;
+        int middleYAxis;
+        int middleXAxis;
+        randomType random;
+        socketclient client;
+        int targetGenerations;
+        int populationQuantity;
         vector<Individual*> *population;
         vector<Individual*> *fitnessPopulation;
         vector<Individual*> *unfitnessPopulation;
-        int populationQuantity;
-        int targetGenerations;
-        randomType random;
-        socketclient client;
-
-
+        map<unsigned int,Cromodistribution> *representation;
+        
         /*
-        void updateRulette(double pTotalFitness) {
-            double lastPercent = 0;
-            for(Individual *actual : *population) {
-                lastPercent += actual->getFitnessValue()/pTotalFitness;
-                rulette->insert({lastPercent,actual});
-            }
-        }
-
-        void evaluateFitness() {
-            fitnessPopulation->clear();
-            unfitnessPopulation->clear();
-            
-            double totalFitness = 0;
-
-            for(Individual *actual : *population) {
-                actual->setFitnessValue(fitness(actual));
-                totalFitness += actual->getFitnessValue();
-            }
-
-            updateRulette(totalFitness);
-
-            for(int i = 0; i < population->size()*FITNESS_POPULATION_PERCENTAGE; i++) {
-                double percentage = (rand() % 1000)/1000;
-                fitnessPopulation->emplace_back(rulette->lower_bound(percentage)->second);
-            }
-        }*/
-        
-        
+        Function to evaluate fitness, first it calculates the fitness of every individual
+        and gets the sum of every individual, the worst individual fitness and the best individual fitness,
+        next we get the number in between the worst individual and the best individual, then we get the number
+        in between that middle number and the best individual. The individuals that are better than that
+        number, are our fitness population.
+        */
         void evaluateFitness() {
             fitnessPopulation->clear();
             unfitnessPopulation->clear();
             
             double totalFitness = 0;
             double worstIndividualFitness = 0;
-            double bestIndividualFitness = 1080;
+            double bestIndividualFitness = DBL_MAX;
             for(Individual *actual : *population) {
                 actual->setFitnessValue(fitness(actual));
                 totalFitness += actual->getFitnessValue();
@@ -80,7 +62,7 @@ class GeneticBase {
                 }
             }
 
-            double fitnessCandidateValue = (bestIndividualFitness+worstIndividualFitness)/2.0;//(totalFitness/population->size());
+            double fitnessCandidateValue = (bestIndividualFitness+worstIndividualFitness)/2.0;
             fitnessCandidateValue = (bestIndividualFitness+fitnessCandidateValue)/2.0;
 
             for(Individual *actual : *population) {
@@ -93,10 +75,17 @@ class GeneticBase {
             }
         }
 
+        // function to get the distance between two points
         double getDistance(int pFirstXAxis, int pFirstYAxis, int pSecondXAxis, int pSecondYAxis) {
             return sqrt(pow(pFirstXAxis-pSecondXAxis,2)+pow(pFirstYAxis-pSecondYAxis,2));
         }
 
+        /*
+        The fitness function, we look for individuals nearby the individual we are calculating the fitness
+        the ideal is to get a number close to "PIXEL_IDEAL_NEIGHBOURS", so we calculate the distance between the
+        amount of neighbours and the ideal amount of neighbours, then we calculate the distance to the center, and
+        multiplicate both numbers to get our fitness value. the less is this number, the better.
+        */
         double fitness(Individual *pIndividual) {
             Cromodistribution actualIndividual = representation->lower_bound(pIndividual->getCromosoma())->second;
             int nearbyIndividuals = 0;
@@ -107,47 +96,31 @@ class GeneticBase {
 
             for(Individual *actual : *population) {
                 Cromodistribution compareIndividual = representation->lower_bound(actual->getCromosoma())->second;
+
                 if(!(minXAxis <= compareIndividual.xAxis && compareIndividual.xAxis <= maxXAxis)) 
                     continue;
+
                 if(!(minYAxis <= compareIndividual.yAxis && compareIndividual.yAxis <= maxYAxis))
                     continue;
-                /*
-                if(compareIndividual.color != actualIndividual.color)
-                    continue;*/ // si colores diferentes
+
                 if(compareIndividual.xAxis == actualIndividual.xAxis && compareIndividual.yAxis == actualIndividual.yAxis) {
                     nearbyIndividuals += 3;
-                    continue; //si son iguales
+                    continue;
                 }
                     
                 nearbyIndividuals += 1;
             }
             double result = abs(PIXEL_IDEAL_NEIGHBOURS-nearbyIndividuals);
-            result = getDistance(actualIndividual.xAxis,actualIndividual.yAxis,540,540)*result;
+            result = getDistance(actualIndividual.xAxis,actualIndividual.yAxis,middleXAxis,middleYAxis)*result;
             return result;
         }
 
         /*
-        double fitness(Individual *pIndividual) {
-            int totalSizeCluster = 0;
-            double distanceSum = 0;
-            Cromodistribution actualIndividual = representation->lower_bound(pIndividual->getCromosoma())->second;
-            for(Individual *actual : *population) {
-                Cromodistribution compareIndividual = representation->lower_bound(actual->getCromosoma())->second;
-                if(compareIndividual.color != actualIndividual.color) {
-                    continue;
-                }
-                distanceSum += getDistance(actualIndividual,compareIndividual);
-                totalSizeCluster++;
-            }
-            return distanceSum/totalSizeCluster;
-        }*/
-
+        Basic reproduction algorithm
+        */
         void reproduce(int pAmountOfChildrens) {
-            // previous population will be cleared, full saved, partial saved depending on the problem
             population->clear();
-
             for(int i=0; i<pAmountOfChildrens; i++) {
-                // select any two fitness parents
                 int parent_a_index = rand()%fitnessPopulation->size();
                 Individual* parent_a = fitnessPopulation->at(parent_a_index);
 
@@ -156,9 +129,11 @@ class GeneticBase {
 
                 population->push_back(cross(parent_a, parent_b));
             }
-            //population->insert(population->end(),fitnessPopulation->begin(),fitnessPopulation->end());
         }
 
+        /*
+        Basic cross algorithm, with 3% mutation rate
+        */
         Individual* cross(Individual *pParent_a, Individual *pParent_b) {
             int cut_position = (rand() % (NIBBLE_SIZE-MIN_GENOTYPE_SIZE_BY_PARENT*2)) + MIN_GENOTYPE_SIZE_BY_PARENT;
 
@@ -182,6 +157,9 @@ class GeneticBase {
             return children;
         }
 
+        /*
+        Method used to send to the java painter, the population to draw.
+        */
         void paintGeneration() {
             client.init();
                 client.clear();
@@ -197,18 +175,10 @@ class GeneticBase {
                     } else {
                         client.paintDotGray(IndivRepr.color,IndivRepr.xAxis,IndivRepr.yAxis,10);
                     }
-                    Sleep(60);
+                    Sleep(80);
                 }
                 client.closeConnection();
                 Sleep(6000);
-        }
-        void printPopulation() {
-            for(Individual *actual : *population) {
-                Cromodistribution IndivRepr = representation->lower_bound(actual->getCromosoma())->second;
-                cout << endl << "Posicion: " << IndivRepr.xAxis << ", " << IndivRepr.yAxis << endl;
-                cout << "Fitness Value: " << actual->getFitnessValue() << endl;
-            }
-            cout << endl;
         }
 
     public:
@@ -219,9 +189,18 @@ class GeneticBase {
             this->fitnessPopulation = new vector<Individual*>();
             this->unfitnessPopulation = new vector<Individual*>();
             this->representation = new map<unsigned int,Cromodistribution>(); 
-            this->rulette = new map<double,Individual*>();
             this->populationQuantity = 0;
             this->targetGenerations = 50;
+            this->middleXAxis = 0;
+            this->middleYAxis = 0;
+        }
+
+        void setMiddleXAxis(int pMiddleXAxis) {
+            middleXAxis = pMiddleXAxis;
+        }
+
+        void setMiddleYAxis(int pMiddleYAxis) {
+            middleYAxis = pMiddleYAxis;
         }
 
         void addDistribution(Cromodistribution pDistribution, unsigned int pRange) {
@@ -238,18 +217,13 @@ class GeneticBase {
         }
         
         void produceGenerations(int ptargetGenerations, int pChildrensPerGenerations) {
-            //paintGeneration();
+            paintGeneration(); // initial Population
             for(int i=0; i<ptargetGenerations; i++) {
                 evaluateFitness();
-                //cout << endl << fitnessPopulation->size() << endl;
-                //cout << unfitnessPopulation->size() << endl;
-                if((i+1) >= ptargetGenerations)
-                    printPopulation();
                 //paintGeneration();                
                 reproduce(pChildrensPerGenerations);
             }
-            paintGeneration();
-            //printPopulation();  
+            paintGeneration(); // final population
         }
 
         vector<Individual*> getPopulation() {

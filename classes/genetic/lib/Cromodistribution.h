@@ -8,6 +8,10 @@
 #include "GrayIntensity.h"
 #include "TypeOfShape.h"
 
+/*
+Edited cromosomatic distribution representation structure
+*/
+
 struct Cromodistribution {
     int xAxis;
     int yAxis;
