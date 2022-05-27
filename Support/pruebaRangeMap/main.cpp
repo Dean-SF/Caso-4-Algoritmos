@@ -18,8 +18,10 @@ int main () {
     for(int i = 0; i < 40; i++) {
         double randDouble = (rand()%1000)/1000.00;
         string pr = (*mapa.lower_bound(randDouble)).second;
-
+        
         cout << "Para el numero: " << randDouble << " la caja: " << pr << endl;
     }
+
+    cout << (*mapa.upper_bound(0.30)).second << endl; 
     return 0;
 }

@@ -26,7 +26,7 @@ void changeToGrayScale(CImg<float> *image ,int x, int y) {
 
 int main() {
 
-    CImg imagen("../../samples/repre(1080).jpg");
+    CImg imagen("../../samples/ref(1080).jpg");
 
     for(int i = 0; i < 1080; i++) {
         for(int j = 0; j < 1080; j++) {
@@ -34,8 +34,8 @@ int main() {
         }
     }
 
-    for(int i = 256; i <= 860; i+=20) {
-        for(int j = 140; j <= 980; j+=20) {
+    for(int i = 2; i <= 1070; i+=20) {
+        for(int j = 6; j <= 1078; j+=20) {
             changeRGBPixel(&imagen,i,j,175,0,0);
         }
     }
@@ -43,6 +43,7 @@ int main() {
     imagen.save("../../samples/nueva.jpg");
 
     CImgDisplay display(imagen,"SoylaImagen");
+    display.resize(900,900,true);
     while(!display.is_closed()) {
         sleep(0.5);
     }

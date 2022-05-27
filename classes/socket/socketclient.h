@@ -54,6 +54,14 @@ class socketclient {
 			send(sock,msg, strlen(msg), 0);
 		}
 
+		void paintDotGray(int pGray, int x0, int y0, int pRadius) {
+			paintDot(pGray,pGray,pGray,255,x0,y0,pRadius);
+		}
+
+		void paintLineGray(int pGray, int x0, int y0, int x1, int y1) {
+			paintLine(pGray, pGray, pGray, 255, x0, y0, x1, y1);
+		}
+
 		void clear() {
 			char* msgclear;
 			string msgclearString = "clear\n";

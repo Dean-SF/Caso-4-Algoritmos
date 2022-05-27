@@ -7,9 +7,22 @@ private:
     int yAxis;
     unsigned char color;
 public:
+    Pixel() {
+        xAxis = 0;
+        yAxis = 0;
+        color = 0;
+    }
+
+    Pixel(const Pixel &other) {
+        xAxis = other.xAxis;
+        yAxis = other.yAxis;
+        color = other.color;
+    }
+
     Pixel(int pXAxis, int pYAxis) {
         xAxis = pXAxis;
         yAxis = pYAxis;
+        color = 0;
     }
 
     Pixel(int pXAxis, int pYAxis, unsigned char pColor) {
@@ -22,12 +35,6 @@ public:
         xAxis = pXAxis;
         yAxis = pYAxis;
         setColor(red,green,blue);
-    }
-
-    Pixel() {
-        xAxis = 0;
-        yAxis = 0;
-        color = 0;
     }
 
     int getXAxis() {

@@ -11,7 +11,7 @@ using namespace cimg_library;
 
 int main() {
     CImg<unsigned char> pic("../../samples/ref(1080).jpg");
-    ProbabilisticAlgorithm alg(0.20, &pic);
+    ProbabilisticAlgorithm alg(0.085, &pic);
     alg.work();
 
     return 0;

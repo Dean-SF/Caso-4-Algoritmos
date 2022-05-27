@@ -7,6 +7,7 @@
 #include <iostream>
 #include "Pixel.h"
 #include <vector>
+#include <cmath>
 
 using std::vector;
 using std::cout;
@@ -20,6 +21,13 @@ private:
 
 public:
     Box() {
+
+    }
+
+    Box(const Box &other) {
+        minPixelCoords = other.minPixelCoords;
+        maxPixelCoords = other.maxPixelCoords;
+        pixelGroup = other.pixelGroup;
     }
 
     Box(Pixel pReferencePixel) {
@@ -60,6 +68,11 @@ public:
 
     void setReferencePixel(Pixel pPixel) {
         pixelGroup[0] = pPixel;
+    }
+
+    double distance(int pXAxis, int pYAxis) {
+        Pixel reference = getReferencePixel();
+        return sqrt(pow(pXAxis-reference.getXAxis(),2)-pow(pYAxis-reference.getYAxis(),2));
     }
 
     bool checkColor(Pixel pPixel) {

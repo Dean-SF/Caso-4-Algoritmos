@@ -186,7 +186,7 @@ public:
 
         int temp = 0;
 
-        for(int i = 0; i < 100000; i++) {
+        for(int i = 0; i < sizeOfSample; i++) {
             //cout << i << " : " << pixelCounter << endl;
             randomPercentage = (rand() % 100) / 100.00;
             Box* chosenBox = getBox(randomPercentage);
@@ -261,7 +261,7 @@ public:
         }*/
         // cout << "RESULTADO FINAL " << endl;
         //printTable();
-        changeColors();
+        //changeColors();
     }
 
 };
