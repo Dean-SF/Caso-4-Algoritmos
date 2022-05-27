@@ -2,11 +2,11 @@
 #define PROBABILISTICALGORITHM_H
 
 #include <map>
-#include <random>
 #include <ctime>
+#include <random>
+#include <vector>
 #include <iostream>
 #include <unistd.h>
-#include <vector>
 #include <iterator>
 #include "Box.h"
 #include "Pixel.h"
@@ -14,8 +14,8 @@
 #include "../../libraries/CImg.h"
 
 using namespace std;
-using namespace cimg_library;
 using std::map;
+using namespace cimg_library;
 
 #define BACKGROUND_RANGE 20
 
@@ -23,37 +23,23 @@ const unsigned TOTAL_OF_PIXELS = 1166400; // 1080x1080
 
 class ProbabilisticAlgorithm {
 private:
-    unsigned char backgroundColor;
-    double samplePercentage;
+    double totalBoxes;
+    vector<Box*> boxes;
     double sizeOfSample;
     double pixelCounter;
-    vector<Box*> boxes;
     map<double,Box*> table;
-    double totalBoxes;
+    double samplePercentage;
     CImg<unsigned char> *picture;
+    unsigned char backgroundColor;
 
-    void printTable() {
-        double suma = 0.00;
-        for (auto& row : table) {
-            cout << "[ ";
-            cout << "Probability = " << row.first << endl;
-            cout << "Pixels = ";
-            Box* currentBox = row.second;
-            if (currentBox == nullptr) {
-                cout << "random" << endl;
-            } else {
-                currentBox->printPixels();
-                cout << "]" << endl;
-            }
-        }
-    }
-
-    void setBackgroundColor(){
+    // Get the picture's background color by getting the color from a Pixel that belongs to the background
+    void setBackgroundColor() {
         Pixel *temporalPixel = new Pixel(0, 0, *(picture->data(0,0,0,0)), *(picture->data(0,0,0,1)), *(picture->data(0,0,0,2)));
         backgroundColor = temporalPixel->getColor();
         delete temporalPixel;
     }
 
+    // Check if the pixel located in given 'x' and 'y' axis has the same color as the background of the picture
     bool isBackground(int pXAxis, int pYAxis) {
         unsigned char pixelColor = 0.299*(*(picture->data(pXAxis,pYAxis,0,0))) + 0.587*(*(picture->data(pXAxis,pYAxis,0,1))) + 0.114*(*(picture->data(pXAxis,pYAxis,0,2))); 
         if(backgroundColor - BACKGROUND_RANGE < pixelColor && pixelColor < backgroundColor + BACKGROUND_RANGE) {
@@ -62,102 +48,29 @@ private:
         return false;
     }
 
+    // Function that returns a probability where the lower the amount of pixels, the higher the probability of being chosen
     double getInverseProbability(int pPixelsInBox) {
         if (totalBoxes == 1) 
             return 1;
         double copyTotalBoxes = totalBoxes;
-        copyTotalBoxes--;
+        copyTotalBoxes--;   // Ignore the row reserved for the probability of creating a new box
         return (1.0 - (pPixelsInBox/pixelCounter)) / copyTotalBoxes;
     }
 
-    void updateTable() {
-        table.clear();
-        int pixelsInBox;
-        Box* currentBox;
-
-        double previousProbability = 0.00;
-        double updatedProbability, newProbability;
-        int boxIterator = 0;
-
-        for (; boxIterator != boxes.size(); boxIterator++) { 
-            currentBox = boxes[boxIterator];
-            if (currentBox == nullptr) 
-                updatedProbability = getInverseProbability(1);
-            else {
-                pixelsInBox = currentBox->getPixelCount();
-                updatedProbability = getInverseProbability(pixelsInBox);
-            }
-            newProbability = previousProbability + updatedProbability;
-            table.insert({newProbability, currentBox});
-            previousProbability = newProbability;
-        }
-    }
-
-    void addPixelToBox(Pixel pPixelToAdd, Pixel pReferencePixel) {
-        for (int boxIter = 1; boxIter < boxes.size(); boxIter++) {
-            if (boxes[boxIter]->getReferencePixel().getXAxis() == pReferencePixel.getXAxis()
-            || boxes[boxIter]->getReferencePixel().getYAxis() == pReferencePixel.getYAxis()) {
-                boxes[boxIter]->appendPixel(pPixelToAdd);
-            }
-        }
-    }
-
-    // Segun el porcentaje random, ver en cual box cae 
+    // Return a pointer to the box that has a probability equal or greater than the given percentage
     Box* getBox(double pRandomPercentage) {
         return (*table.lower_bound(pRandomPercentage)).second;
     }
 
+    // Return a new pixel with the attributes: x axis, y axis and RGB.
     Pixel getNewPixel(int pXAxis, int pYAxis) {
-        Pixel newPixel(pXAxis, pYAxis, *(picture->data(pXAxis,pYAxis,0,0)), *(picture->data(pXAxis,pYAxis,0,1)), *(picture->data(pXAxis,pYAxis,0,2)));
+        Pixel newPixel(pXAxis, pYAxis, *(picture->data(pXAxis,pYAxis,0,0)), *(picture->data(pXAxis,pYAxis,0,1)), 
+                        *(picture->data(pXAxis,pYAxis,0,2)));
         return newPixel;
     }
 
-public:
-    ProbabilisticAlgorithm (double pSamplePercentage, CImg<unsigned char> *pPicture) {
-        samplePercentage = pSamplePercentage;
-        sizeOfSample = TOTAL_OF_PIXELS * samplePercentage;
-        pixelCounter = 1;
-        totalBoxes = 1;
-        picture = pPicture;
-    }
-
-    double getSamplePercentage() {
-        return samplePercentage;
-    }
-
-    void setSamplePercentage(double pSamplePercentage) {
-        samplePercentage = pSamplePercentage;
-    }
-
-    double getSizeOfSample() {
-        return sizeOfSample;
-    }
-
-    void setSizeOfSample(double pSizeOfSample) {
-        sizeOfSample = pSizeOfSample;
-    }
-
-    int getPixelCounter() {
-        return pixelCounter;
-    }
-
-    void setPixelCounter(int pPixelCounter) {
-        pixelCounter = pPixelCounter;
-    }
-
-    vector<Box*>* getBoxes() {
-        return &boxes;
-    }
-
-    void setTable(map<double,Box*> pTable) {
-        table = pTable;
-    }
-
-    map<double,Box*>* getTable() {
-        return &table;
-    }
-
-    void changeColors() {
+    // This function takes an image and changes the color of the pixels that belong to the boxes from the table
+    void showGroupsOnPicture() {
         for (int i = 1; i < boxes.size(); i++) {
             unsigned char red = rand() % 255;
             unsigned char green = rand() % 255;
@@ -178,93 +91,127 @@ public:
         }
     }
 
+    /* This function is called everytime we add a new row to the probability table or when a 
+       new pixel is added to a box. */
+    void updateTable() {
+        table.clear();      // Clear the table (map) to insert updated information
+        int pixelsInBox;    // Amount of pixels in a box
+        Box* currentBox;    
+
+        /* previousProbability: Store the higher limit of range from the previous box -> lower limit for current box
+           updatedProbability: To store the new probability returned by the inverse probability function
+           newProbability: The sum of the previous probability and the updated probability -> higher limit for current box */
+        double previousProbability = 0.00;
+        double updatedProbability, newProbability;
+        int boxIterator = 0;
+
+        for (; boxIterator != boxes.size(); boxIterator++) { 
+            currentBox = boxes[boxIterator];    // Get pointer to current box
+            if (currentBox == nullptr)  // Row from table reserved for the probability of creating a new box
+                updatedProbability = getInverseProbability(1);
+            else {
+                pixelsInBox = currentBox->getPixelCount();
+                // Get inverse probability with the amount of pixels from current box
+                updatedProbability = getInverseProbability(pixelsInBox); 
+            }
+            newProbability = previousProbability + updatedProbability;  
+            table.insert({newProbability, currentBox});
+            previousProbability = newProbability;   // Update higher limit from current box -> lower limit for next iteration
+        }
+    }
+
+public:
+    ProbabilisticAlgorithm (double pSamplePercentage, CImg<unsigned char> *pPicture) {
+        totalBoxes = 1;
+        pixelCounter = 1;
+        picture = pPicture;
+        samplePercentage = pSamplePercentage;
+        sizeOfSample = TOTAL_OF_PIXELS * samplePercentage;
+    }
+
+    int getPixelCounter() {
+        return pixelCounter;
+    }
+
+    vector<Box*>* getBoxes() {
+        return &boxes;
+    }
+ 
+    double getSizeOfSample() {
+        return sizeOfSample;
+    }
+
+    double getSamplePercentage() {
+        return samplePercentage;
+    }
+
+    map<double,Box*>* getTable() {
+        return &table;
+    }
+
+    void setTable(map<double,Box*> pTable) {
+        table = pTable;
+    }
+
+    void setPixelCounter(int pPixelCounter) {
+        pixelCounter = pPixelCounter;
+    }
+
+    void setSizeOfSample(double pSizeOfSample) {
+        sizeOfSample = pSizeOfSample;
+    }
+
+    void setSamplePercentage(double pSamplePercentage) {
+        samplePercentage = pSamplePercentage;
+    }
+
     void work() {
         srand (time(0));
-        boxes.emplace_back(nullptr);
-        table.insert({1.0, nullptr});
+        boxes.emplace_back(nullptr);    // null pointer to a box that represents the creation of a new box
+        table.insert({1.0, nullptr});   // Row reserved for the probability of creating a new box
         setBackgroundColor();
-      
-        int randomNumber, minX, minY, maxX, maxY, randomX, randomY;
-        double randomPercentage, probabilityForNewBox;
 
-        int temp = 0;
+        double randomPercentage;
+        int minX, minY, maxX, maxY, randomX, randomY;
+        
+        for (int i = 0; i < sizeOfSample; i++) {    
+            randomPercentage = (rand() % 100) / 100.00; // Get a random percentage 0.00 - 1.00
+            // Get pointer to box which probability is the closest or is equal to the random percentage
+            Box* chosenBox = getBox(randomPercentage);  
 
-        for(int i = 0; i < sizeOfSample; i++) {
-            //cout << i << " : " << pixelCounter << endl;
-            randomPercentage = (rand() % 100) / 100.00;
-            Box* chosenBox = getBox(randomPercentage);
-
-            if (chosenBox == nullptr) {
-                randomX = 30 + rand() % 1019;
+            if (chosenBox == nullptr) {         // This means that a new box will be created
+                randomX = 30 + rand() % 1019;   
                 randomY = 30 + rand() % 1019;
-                if(isBackground(randomX,randomY)) {
+                if (isBackground(randomX,randomY)) 
                     continue;
-                }
-                pixelCounter++;
-                totalBoxes++;
+                
+                pixelCounter++;     // Increase pixel counter since we are creating a new random pixel
+                totalBoxes++;       // Increase the amount of boxes since we are creating a new box
                 Pixel randPixel = getNewPixel(randomX, randomY);
                 Box* newBox = new Box(randPixel);
-                boxes.emplace_back(newBox);
+                boxes.emplace_back(newBox);     // Add probability and box to the table
                 
-            } else {
-                Pixel referencePixel = chosenBox->getReferencePixel();
+            } else {    // A pixel will be added to the chosen box
+                Pixel referencePixel = chosenBox->getReferencePixel(); // Reference pixel to get min and max coordinates
                 
                 minX = chosenBox->getMinCoords().getXAxis();
                 maxX = chosenBox->getMaxCoords().getXAxis();
                 minY = chosenBox->getMinCoords().getYAxis();
                 maxY = chosenBox->getMaxCoords().getYAxis();
 
-                randomX = abs(minX + (rand() % (maxX-minX)));
+                randomX = abs(minX + (rand() % (maxX-minX)));   // Generate a random number in range min and max for each axis
                 randomY = abs(minY + (rand() % (maxY-minY)));
-            
-                Pixel newPixel = getNewPixel(randomX, randomY);
-                if (chosenBox->checkColor(newPixel)) {
-                    chosenBox->appendPixel(newPixel);
+
+                // Create a new pixel with the random axis within the range of the reference pixel
+                Pixel newPixel = getNewPixel(randomX, randomY); 
+                // Check if the color from the new pixel is similar to the reference pixel's color
+                if (chosenBox->checkColor(newPixel)) {  
+                    chosenBox->appendPixel(newPixel);   // Add pixel to the chosen box
                     pixelCounter++;
                 }
             }
-            updateTable();
+            updateTable();  // Update table with new information
         }
-        /*
-        while (pixelCounter <= 50000) {
-            cout << pixelCounter << endl;
-            randomPercentage = (rand() % 100) / 100.00;
-            Box* chosenBox = getBox(randomPercentage);
-
-            if (chosenBox == nullptr) {
-                randomX = 30 + rand() % 1019;
-                randomY = 30 + rand() % 1019;
-                if(isBackground(randomX,randomY)) {
-                    continue;
-                }
-                pixelCounter++;
-                totalBoxes++;
-                Pixel randPixel = getNewPixel(randomX, randomY);
-                Box* newBox = new Box(randPixel);
-                boxes.emplace_back(newBox);
-                
-            } else {
-                Pixel referencePixel = chosenBox->getReferencePixel();
-                
-                minX = chosenBox->getMinCoords().getXAxis();
-                maxX = chosenBox->getMaxCoords().getXAxis();
-                minY = chosenBox->getMinCoords().getYAxis();
-                maxY = chosenBox->getMaxCoords().getYAxis();
-
-                randomX = abs(minX + (rand() % (maxX-minX)));
-                randomY = abs(minY + (rand() % (maxY-minY)));
-            
-                Pixel newPixel = getNewPixel(randomX, randomY);
-                if (chosenBox->checkColor(newPixel)) {
-                    chosenBox->appendPixel(newPixel);
-                    pixelCounter++;
-                }
-            }
-            updateTable();
-        }*/
-        // cout << "RESULTADO FINAL " << endl;
-        //printTable();
-        //changeColors();
     }
 
 };
