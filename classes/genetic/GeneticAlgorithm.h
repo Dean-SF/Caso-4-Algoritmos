@@ -154,13 +154,25 @@ private:
     double getProbabilitySum() {
         double probabilitySum = 0;
         for(int xAxis = minCoords.getXAxis(); xAxis < maxCoords.getXAxis(); xAxis+=PIXEL_SEPARATION) {
+            Probability xActual = xAxisAproximation.lower_bound(xAxis)->second;
             for(int yAxis = minCoords.getYAxis(); yAxis < maxCoords.getYAxis(); yAxis+=PIXEL_SEPARATION) {
-                int xAbs = xAxisAproximation.lower_bound(xAxis)->second.amountClosest;
-                int yAbs = yAxisAproximation.lower_bound(yAxis)->second.amountClosest;
-                int totalAbs = xAbs + yAbs;
-                probabilitySum += (totalAbs/(double)totalAxis);
+                Probability yActual = yAxisAproximation.lower_bound(yAxis)->second; 
+                int xAbs = xActual.amountClosest;
+                int yAbs = yActual.amountClosest;
+                double xDistance = xActual.distanceClosest;
+                double yDistance = yActual.distanceClosest;
+                double distanceCalibrator = ((xDistance+yDistance)/2.0);
+                if(distanceCalibrator < 1)
+                    distanceCalibrator = 1.0;
+                distanceCalibrator = 1.0/distanceCalibrator;
+                /*if(0 <= xAxis && xAxis <= 100 && 0 <= yAxis && yAxis <= 100) {
+                cout << endl << distanceCalibrator << endl;
+                cout << (xAbs + yAbs/(double)totalAxis) << endl;
+                cout << (xAbs + yAbs/(double)totalAxis)*distanceCalibrator << endl;}*/
+                probabilitySum += (((xAbs + yAbs)/(double)totalAxis)*distanceCalibrator);
             }
         }
+        //cout << "si" << probabilitySum << endl;
         return probabilitySum;
     }
 
@@ -173,8 +185,8 @@ private:
         
         double probabilitySum = getProbabilitySum();
         
+        double suma = 0;
         unsigned int lastRange = 0;
-
         for(int xAxis = minCoords.getXAxis(); xAxis < maxCoords.getXAxis(); xAxis+=PIXEL_SEPARATION) {
             for(int yAxis = minCoords.getYAxis(); yAxis < maxCoords.getYAxis(); yAxis+=PIXEL_SEPARATION) {
                 Probability xAxisTable = xAxisAproximation.lower_bound(xAxis)->second;
@@ -184,32 +196,77 @@ private:
 
                 int totalAmount = xAxisTable.totalAmount + yAxisTable.totalAmount;
 
-               //cout << totalAmount << endl;
+                //cout << totalAmount << endl;
 
                 long double partialDarkProb= (xAxisTable.amountDark + yAxisTable.amountDark)/(double)totalAmount;
                 long double partialMidProb = (xAxisTable.amountMid + yAxisTable.amountMid)/(double)totalAmount;
                 long double partialLightProb= (xAxisTable.amountLight + yAxisTable.amountLight)/(double)totalAmount;
 
-                long double coordProbability = ((xAbsolute + yAbsolute)/(double)totalAxis)/(double)probabilitySum;
+                double xDistance = xAxisTable.distanceClosest;
+                double yDistance = yAxisTable.distanceClosest;
+                double distanceCalibrator = ((xDistance+yDistance)/2.0);
+                if(distanceCalibrator < 1)
+                    distanceCalibrator = 1.0;
+                distanceCalibrator = 1.0/distanceCalibrator;
 
+                long double coordProbability = (((xAbsolute + yAbsolute)/(double)totalAxis)*distanceCalibrator)/(double)probabilitySum;
+                suma += coordProbability;
                 long double darkProb = coordProbability*partialDarkProb;
                 long double midProb = coordProbability*partialMidProb;
                 long double lightProb = coordProbability*partialLightProb;
 
-                //addAllDistributions(xAxis,yAxis,darkProb,midProb,lightProb,&lastRange);
-                
+                addAllDistributions(xAxis,yAxis,darkProb,midProb,lightProb,&lastRange);
+                /*
                 cout << endl << "TOTAL PROBABILITY: " << coordProbability << endl;
                 cout << "-- Probability Distribution ---" << endl;
                 cout << "Probability For Dark: " << darkProb << endl;
                 cout << "Probability For Mid: " << midProb << endl;
                 cout << "Probability For Light: " << lightProb << endl;
-                cout << "Probability Sum: " << darkProb + midProb + lightProb << endl;
+                cout << "Probability Sum: " << darkProb + midProb + lightProb << endl;*/
             }
         }
+        //cout << suma << endl;
+        /*
+        int xAxis = 27*PIXEL_SEPARATION;
+        int yAxis = 27*PIXEL_SEPARATION;
+        Probability xAxisTable = xAxisAproximation.lower_bound(xAxis)->second;
+        Probability yAxisTable = yAxisAproximation.lower_bound(yAxis)->second;
+        int xAbsolute = xAxisTable.amountClosest;
+        int yAbsolute = yAxisTable.amountClosest;
+
+        int totalAmount = xAxisTable.totalAmount + yAxisTable.totalAmount;
+
+        //cout << totalAmount << endl;
+
+        long double partialDarkProb= (xAxisTable.amountDark + yAxisTable.amountDark)/(double)totalAmount;
+        long double partialMidProb = (xAxisTable.amountMid + yAxisTable.amountMid)/(double)totalAmount;
+        long double partialLightProb= (xAxisTable.amountLight + yAxisTable.amountLight)/(double)totalAmount;
+
+        double xDistance = xAxisTable.distanceClosest;
+        double yDistance = yAxisTable.distanceClosest;
+        double distanceCalibrator = ((xDistance+yDistance)/2.0);
+        if(distanceCalibrator==0)
+            distanceCalibrator = 1.0;
+        distanceCalibrator = 1.0/distanceCalibrator;
+
+        long double coordProbability = (((xAbsolute + yAbsolute)/(double)totalAxis)*distanceCalibrator)/(double)probabilitySum;
+
+        long double darkProb = coordProbability*partialDarkProb;
+        long double midProb = coordProbability*partialMidProb;
+        long double lightProb = coordProbability*partialLightProb;
+
+        //addAllDistributions(xAxis,yAxis,darkProb,midProb,lightProb,&lastRange);
+        
+        cout << endl << "TOTAL PROBABILITYaaa: " << coordProbability << endl;
+        cout << "-- Probability Distribution ---" << endl;
+        cout << "Probability For Dark: " << darkProb << endl;
+        cout << "Probability For Mid: " << midProb << endl;
+        cout << "Probability For Light: " << lightProb << endl;
+        cout << "Probability Sum: " << darkProb + midProb + lightProb << endl;*/
     }
 
     void printRepresentation() {
-         map<unsigned int,Cromodistribution> *representation = genetic->getRepresentation();
+        map<unsigned int,Cromodistribution> *representation = genetic->getRepresentation();
         for(pair<unsigned int,Cromodistribution> actual : *representation) {
             cout << actual.first << ", ";
         }
@@ -242,11 +299,11 @@ public:
 
         initDistribution();
 
-        //genetic->initPopulation(200);
+        genetic->initPopulation(200);
 
-        //genetic->produceGenerations(100,500);
+        genetic->produceGenerations(100,500);
 
-        //printRepresentation(representation);
+        //printRepresentation();
     }
 
 

@@ -14,7 +14,7 @@ private:
     
 public:
     Controller() {
-        picture = new CImg<unsigned char>("../../samples/ref(1080).jpg");
+        picture = new CImg<unsigned char>("../../samples/repre(1080).jpg");
         probabilistic = new ProbabilisticAlgorithm(0.085,picture); 
         genetic = new GeneticAlgorithm();
     }

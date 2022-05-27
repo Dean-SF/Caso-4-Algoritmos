@@ -11,7 +11,8 @@
 #include "../socket/socketclient.h"
 
 #define PIXEL_SEPARATION BOX_SIZE/3
-#define PIXEL_IDEAL_NEIGHBOURS 25
+#define PIXEL_IDEAL_NEIGHBOURS 8
+#define FITNESS_POPULATION_PERCENTAGE 0.20
 
 using namespace std;
 
@@ -31,6 +32,35 @@ class GeneticBase {
         socketclient client;
 
 
+        /*
+        void updateRulette(double pTotalFitness) {
+            double lastPercent = 0;
+            for(Individual *actual : *population) {
+                lastPercent += actual->getFitnessValue()/pTotalFitness;
+                rulette->insert({lastPercent,actual});
+            }
+        }
+
+        void evaluateFitness() {
+            fitnessPopulation->clear();
+            unfitnessPopulation->clear();
+            
+            double totalFitness = 0;
+
+            for(Individual *actual : *population) {
+                actual->setFitnessValue(fitness(actual));
+                totalFitness += actual->getFitnessValue();
+            }
+
+            updateRulette(totalFitness);
+
+            for(int i = 0; i < population->size()*FITNESS_POPULATION_PERCENTAGE; i++) {
+                double percentage = (rand() % 1000)/1000;
+                fitnessPopulation->emplace_back(rulette->lower_bound(percentage)->second);
+            }
+        }*/
+        
+        
         void evaluateFitness() {
             fitnessPopulation->clear();
             unfitnessPopulation->clear();
@@ -50,8 +80,8 @@ class GeneticBase {
                 }
             }
 
-            double fitnessCandidateValue = (totalFitness/population->size());
-            fitnessCandidateValue = (bestIndividualFitness+fitnessCandidateValue)/2;
+            double fitnessCandidateValue = (bestIndividualFitness+worstIndividualFitness)/2.0;//(totalFitness/population->size());
+            fitnessCandidateValue = (bestIndividualFitness+fitnessCandidateValue)/2.0;
 
             for(Individual *actual : *population) {
                 
@@ -63,8 +93,8 @@ class GeneticBase {
             }
         }
 
-        double getDistance(Cromodistribution pFirstIndiv,Cromodistribution pSecondIndiv) {
-            return sqrt(pow(pSecondIndiv.xAxis-pFirstIndiv.xAxis,2)+pow(pSecondIndiv.yAxis-pFirstIndiv.yAxis,2));
+        double getDistance(int pFirstXAxis, int pFirstYAxis, int pSecondXAxis, int pSecondYAxis) {
+            return sqrt(pow(pFirstXAxis-pSecondXAxis,2)+pow(pFirstYAxis-pSecondYAxis,2));
         }
 
         double fitness(Individual *pIndividual) {
@@ -81,14 +111,19 @@ class GeneticBase {
                     continue;
                 if(!(minYAxis <= compareIndividual.yAxis && compareIndividual.yAxis <= maxYAxis))
                     continue;
-                /*if(compareIndividual.color != actualIndividual.color)
+                /*
+                if(compareIndividual.color != actualIndividual.color)
                     continue;*/ // si colores diferentes
-                /*if(compareIndividual.xAxis == actualIndividual.xAxis && compareIndividual.yAxis == actualIndividual.yAxis)
-                    continue;*/ //si son iguales
+                if(compareIndividual.xAxis == actualIndividual.xAxis && compareIndividual.yAxis == actualIndividual.yAxis) {
+                    nearbyIndividuals += 3;
+                    continue; //si son iguales
+                }
+                    
                 nearbyIndividuals += 1;
             }
-
-            return abs(PIXEL_IDEAL_NEIGHBOURS-nearbyIndividuals);
+            double result = abs(PIXEL_IDEAL_NEIGHBOURS-nearbyIndividuals);
+            result = getDistance(actualIndividual.xAxis,actualIndividual.yAxis,540,540)*result;
+            return result;
         }
 
         /*
@@ -136,7 +171,7 @@ class GeneticBase {
             unsigned int kid = (pParent_a->getCromosoma() & mask_a) | (pParent_b->getCromosoma() & mask_b);
 
             double percentage = (rand() % 1000)/1000;
-            if(percentage <=0.07) {
+            if(percentage <=0.03) {
                 unsigned int mutationMask = 2147483648;
                 int bit = rand() % 31;
                 mutationMask >>= bit;
@@ -162,10 +197,10 @@ class GeneticBase {
                     } else {
                         client.paintDotGray(IndivRepr.color,IndivRepr.xAxis,IndivRepr.yAxis,10);
                     }
-                    Sleep(10);
+                    Sleep(60);
                 }
                 client.closeConnection();
-                //Sleep(5000);
+                Sleep(6000);
         }
         void printPopulation() {
             for(Individual *actual : *population) {
@@ -203,6 +238,7 @@ class GeneticBase {
         }
         
         void produceGenerations(int ptargetGenerations, int pChildrensPerGenerations) {
+            //paintGeneration();
             for(int i=0; i<ptargetGenerations; i++) {
                 evaluateFitness();
                 //cout << endl << fitnessPopulation->size() << endl;
