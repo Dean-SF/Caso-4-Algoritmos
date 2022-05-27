@@ -95,6 +95,8 @@ class GeneticBase {
             int maxYAxis = actualIndividual.yAxis + (PIXEL_SEPARATION*2);
 
             for(Individual *actual : *population) {
+                if(actual == pIndividual)
+                    continue;
                 Cromodistribution compareIndividual = representation->lower_bound(actual->getCromosoma())->second;
 
                 if(!(minXAxis <= compareIndividual.xAxis && compareIndividual.xAxis <= maxXAxis)) 
