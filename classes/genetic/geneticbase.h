@@ -9,6 +9,7 @@
 #include "lib/Individual.h"
 #include "lib/Cromodistribution.h"
 #include "../socket/socketclient.h"
+#include "../probabilistic/Box.h"
 
 #define PIXEL_SEPARATION BOX_SIZE/3
 #define PIXEL_IDEAL_NEIGHBOURS 8
