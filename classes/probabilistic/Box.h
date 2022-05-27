@@ -13,6 +13,9 @@ using std::vector;
 using std::cout;
 using std::endl;
 
+/*
+Class for pixel storage
+*/
 class Box {
 private:
     Pixel minPixelCoords;
@@ -20,6 +23,7 @@ private:
     vector<Pixel> pixelGroup;
 
 public:
+    // constructors
     Box() {
 
     }
@@ -38,6 +42,7 @@ public:
         pixelGroup.emplace_back(pReferencePixel);
     }
 
+    // setters & getters
     Pixel getMinCoords() {
         return minPixelCoords;
     }
@@ -70,11 +75,17 @@ public:
         pixelGroup[0] = pPixel;
     }
 
+    /*
+    Method to calculate the distance of a coodinate to the center of the box
+    */
     double distance(int pXAxis, int pYAxis) {
         Pixel reference = getReferencePixel();
         return sqrt(pow(pXAxis-reference.getXAxis(),2)-pow(pYAxis-reference.getYAxis(),2));
     }
 
+    /*
+    Method to check if the pixel color is in range
+    */
     bool checkColor(Pixel pPixel) {
         unsigned char reference = pixelGroup[0].getColor();
         if (reference - GRAY_RANGE <= pPixel.getColor() && pPixel.getColor() <= reference + GRAY_RANGE) 
@@ -82,10 +93,16 @@ public:
         return false;
     }
 
+    /*
+    Method to append a pixel to the vector
+    */
     void appendPixel(Pixel pPixel) {
         pixelGroup.emplace_back(pPixel);
     }
-
+    
+    /*
+    Method for printing the vector
+    */
     void printPixels() {
         for (int i = 0; i < getPixelCount(); i++) {
             cout << "(" << pixelGroup[i].getXAxis() << "," << pixelGroup[i].getYAxis() << ") : " << (int)(pixelGroup[i].getColor()) << endl;
