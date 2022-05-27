@@ -159,13 +159,16 @@ public:
 
     void changeColors() {
         for (int i = 1; i < boxes.size(); i++) {
+            unsigned char red = rand() % 255;
+            unsigned char green = rand() % 255;
+            unsigned char blue = rand() % 255;
             vector<Pixel> group = boxes[i]->getPixelGroup();
             for (int j = 0; j < group.size(); j++) {
                 int x = group[j].getXAxis();
                 int y = group[j].getYAxis();
-               (*picture)(x,y,0,0) = 255;
-               (*picture)(x,y,0,1) = 0;
-               (*picture)(x,y,0,2) = 0;
+               (*picture)(x,y,0,0) = red;
+               (*picture)(x,y,0,1) = green;
+               (*picture)(x,y,0,2) = blue;
             }
         }
         CImgDisplay display(*picture,"SoylaImagen");
