@@ -1,9 +1,10 @@
 #include <iostream>
+#include "classes/controller/Controller.h"
 
-using std::cout;
-using std::endl;
+using namespace std;
 
-int main() {
-    cout << "soy un programa que funciona, hola" << endl;
+int main () {
+    Controller controlador("ref(1080).jpg");
+    controlador.start();
     return 0;
 }

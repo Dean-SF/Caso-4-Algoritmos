@@ -14,7 +14,7 @@ private:
     
 public:
     Controller(string pPicture) {
-        string pictureLocation = "../../samples/";
+        string pictureLocation = "samples/";
         pictureLocation += pPicture;
         picture = new CImg<unsigned char>(&pictureLocation[0]);
         probabilistic = new ProbabilisticAlgorithm(0.085,picture); 
